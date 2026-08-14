@@ -130,7 +130,12 @@ class Authenticator:
             logger.error(driver.page_source[:3000])
         except Exception:  # noqa: BLE001
             pass
-        raise last_error  # type: ignore[misc]
+        if last_error is None:
+            last_error = Exception(
+                f"No element found at all for {description} (page may be wrong "
+                "URL, a 404, or still loading)."
+            )
+        raise last_error
 
     def _set_value(self, driver: WebDriver, element, value: str) -> None:
         """Sets an input field's value via JavaScript and fires input/change
@@ -183,7 +188,7 @@ class Authenticator:
         """Validates the rules of the CROUS website."""
         logger.info("Validating the rules of the CROUS website")
 
-        driver.get("https://trouverunlogement.lescrous.fr/tools/36/rules")
+        driver.get("https://trouverunlogement.lescrous.fr/tools/47/rules")
 
         sleep(self.delay)
 
