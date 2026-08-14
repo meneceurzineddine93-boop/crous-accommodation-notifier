@@ -29,8 +29,7 @@ def load_users_conf() -> List[UserConf]:
         UserConf(
             conf_title="Me",
             telegram_id=settings.MY_TELEGRAM_ID,
-            search_url="https://trouverunlogement.lescrous.fr/tools/36/search?bounds=4.863088128353419_45.79119771932692_4.887077805782618_45.764140033383086",  # type:ignore
-            # search_url="https://trouverunlogement.lescrous.fr/tools/36/search",  # type:ignore
+            search_url="https://trouverunlogement.lescrous.fr/tools/47/search?bounds=2.2235574_49.9505487_2.3457767_49.846837&locationName=Amiens+%2880000%29",  # type:ignore
             ignored_ids=[2755],
         )
     ]
