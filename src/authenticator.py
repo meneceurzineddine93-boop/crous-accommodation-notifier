@@ -41,8 +41,27 @@ class Authenticator:
 
         # Step 3: Input credentials and submit
         logger.info("Inputting credentials")
-        username_input = driver.find_element(By.NAME, "j_username")
-        password_input = driver.find_element(By.NAME, "j_password")
+        username_input = self._find_element(
+            driver,
+            [
+                (By.NAME, "j_username"),
+                (By.NAME, "username"),
+                (By.NAME, "email"),
+                (By.NAME, "login"),
+                (By.CSS_SELECTOR, "input[type='email']"),
+                (By.CSS_SELECTOR, "input[type='text']"),
+            ],
+            "username field",
+        )
+        password_input = self._find_element(
+            driver,
+            [
+                (By.NAME, "j_password"),
+                (By.NAME, "password"),
+                (By.CSS_SELECTOR, "input[type='password']"),
+            ],
+            "password field",
+        )
 
         username_input.send_keys(self.email)
         password_input.send_keys(self.password)
@@ -60,6 +79,30 @@ class Authenticator:
 
         # Done
         logger.info("Successfully authenticated to the CROUS website")
+
+    def _find_element(self, driver: WebDriver, strategies: list, description: str):
+        """Tries several (By, value) strategies in order and returns the first match.
+        Logs a snippet of the page source if none match, to help diagnose site changes.
+        """
+        last_error: Exception | None = None
+        for by, value in strategies:
+            try:
+                element = driver.find_element(by, value)
+                logger.info(f"Found {description} using strategy: {by}={value!r}")
+                return element
+            except Exception as e:  # noqa: BLE001
+                last_error = e
+                continue
+
+        logger.error(
+            f"Could not find the {description} with any known strategy. "
+            "The website's structure may have changed. Dumping page source snippet below:"
+        )
+        try:
+            logger.error(driver.page_source[:3000])
+        except Exception:  # noqa: BLE001
+            pass
+        raise last_error  # type: ignore[misc]
 
     def _find_mse_login_button(self, driver: WebDriver):
         """Finds the 'MesServices' login button (NOT the FranceConnect one),
@@ -81,22 +124,7 @@ class Authenticator:
                 "//*[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZÀÉ', 'abcdefghijklmnopqrstuvwxyzàé'), 'identification avec messervices')]",
             ),
         ]
-
-        last_error: Exception | None = None
-        for by, value in strategies:
-            try:
-                element = driver.find_element(by, value)
-                logger.info(f"Found login button using strategy: {by}={value!r}")
-                return element
-            except Exception as e:  # noqa: BLE001
-                last_error = e
-                continue
-
-        logger.error(
-            "Could not find the MesServices login button with any known strategy. "
-            "The website's structure may have changed."
-        )
-        raise last_error  # type: ignore[misc]
+        return self._find_element(driver, strategies, "MesServices login button")
 
     def _validate_rules(self, driver: WebDriver) -> None:
         """Validates the rules of the CROUS website."""
@@ -108,7 +136,18 @@ class Authenticator:
 
         # <button class="fr-btn" type="submit" name="searchSubmit">Passer à la recherche de logements</button>
 
-        validate_button = driver.find_element(By.NAME, "searchSubmit")
+        validate_button = self._find_element(
+            driver,
+            [
+                (By.NAME, "searchSubmit"),
+                (By.CSS_SELECTOR, "button[type='submit']"),
+                (
+                    By.XPATH,
+                    "//button[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZÀÉ', 'abcdefghijklmnopqrstuvwxyzàé'), 'recherche de logements')]",
+                ),
+            ],
+            "rules validation button",
+        )
 
         validate_button.click()
 
