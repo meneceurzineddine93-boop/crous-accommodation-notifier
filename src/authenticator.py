@@ -1,7 +1,6 @@
 import logging
 from selenium.webdriver.chrome.webdriver import WebDriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
 from time import sleep
 
 from src.settings import Settings
@@ -68,11 +67,19 @@ class Authenticator:
             "password field",
         )
 
-        username_input.send_keys(self.email)
-        password_input.send_keys(self.password)
+        # We set values via JavaScript instead of send_keys(): even though the
+        # fields are technically "visible", something on the page (often a
+        # cookie-consent banner or overlay) can prevent Selenium from treating
+        # them as interactable. Setting .value directly sidesteps that.
+        self._set_value(driver, username_input, self.email)
+        self._set_value(driver, password_input, self.password)
 
         logger.info("Submitting the form")
-        password_input.send_keys(Keys.RETURN)
+        driver.execute_script(
+            "if (arguments[0].form) { arguments[0].form.requestSubmit ? "
+            "arguments[0].form.requestSubmit() : arguments[0].form.submit(); }",
+            password_input,
+        )
 
         sleep(self.delay)
 
@@ -124,6 +131,20 @@ class Authenticator:
         except Exception:  # noqa: BLE001
             pass
         raise last_error  # type: ignore[misc]
+
+    def _set_value(self, driver: WebDriver, element, value: str) -> None:
+        """Sets an input field's value via JavaScript and fires input/change
+        events, so frameworks relying on those events (validation, etc.)
+        still pick up the change. Bypasses interactability issues caused by
+        overlays such as cookie-consent banners.
+        """
+        driver.execute_script(
+            "arguments[0].value = arguments[1];"
+            "arguments[0].dispatchEvent(new Event('input', { bubbles: true }));"
+            "arguments[0].dispatchEvent(new Event('change', { bubbles: true }));",
+            element,
+            value,
+        )
 
     def _find_mse_login_button(self, driver: WebDriver):
         """Finds the 'MesServices' login button (NOT the FranceConnect one),
