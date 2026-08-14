@@ -1,0 +1,27 @@
+name: Crous Accommodation Check
+
+on:
+  schedule:
+    # Toutes les 15 minutes. Modifie ce cron si tu veux une autre fréquence.
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {} # permet aussi de le lancer manuellement depuis l'onglet Actions
+
+jobs:
+  check-accommodations:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t crous-notifier .
+
+      - name: Run notifier
+        run: |
+          docker run --rm \
+            -e MY_TELEGRAM_ID="${{ secrets.MY_TELEGRAM_ID }}" \
+            -e TELEGRAM_BOT_TOKEN="${{ secrets.TELEGRAM_BOT_TOKEN }}" \
+            -e MSE_EMAIL="${{ secrets.MSE_EMAIL }}" \
+            -e MSE_PASSWORD="${{ secrets.MSE_PASSWORD }}" \
+            crous-notifier
