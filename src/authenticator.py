@@ -86,15 +86,31 @@ class Authenticator:
         logger.info("Successfully authenticated to the CROUS website")
 
     def _find_element(self, driver: WebDriver, strategies: list, description: str):
-        """Tries several (By, value) strategies in order and returns the first match.
+        """Tries several (By, value) strategies in order and returns the first
+        VISIBLE match (ignoring hidden decoy/autofill fields that share the
+        same name/type as the real, visible field).
         Logs a snippet of the page source if none match, to help diagnose site changes.
         """
         last_error: Exception | None = None
         for by, value in strategies:
             try:
-                element = driver.find_element(by, value)
-                logger.info(f"Found {description} using strategy: {by}={value!r}")
-                return element
+                candidates = driver.find_elements(by, value)
+                for candidate in candidates:
+                    try:
+                        if candidate.is_displayed():
+                            logger.info(
+                                f"Found {description} using strategy: {by}={value!r}"
+                            )
+                            return candidate
+                    except Exception:  # noqa: BLE001
+                        continue
+                if not candidates:
+                    continue
+                # None of the matches were visible; try the next strategy.
+                last_error = Exception(
+                    f"Found {len(candidates)} element(s) for {by}={value!r} "
+                    "but none were visible/interactable."
+                )
             except Exception as e:  # noqa: BLE001
                 last_error = e
                 continue
