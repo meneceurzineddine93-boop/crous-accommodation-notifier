@@ -26,10 +26,15 @@ class Authenticator:
 
         sleep(self.delay)
 
-        # Step 1: Go to the login page
-
-        logger.info(f"Going to the login page: {settings.MSE_LOGIN_URL}")
-        driver.get(settings.MSE_LOGIN_URL)
+        # Step 1: Go to the login page.
+        # We go through the "trouverunlogement" discovery/connect endpoint (as a
+        # real user would, by clicking "Connexion" on the housing site) instead
+        # of hitting the bare MesServices login URL directly: the bare URL now
+        # redirects straight back to the MesServices homepage without the
+        # correct session/redirect parameters attached.
+        discovery_url = "https://trouverunlogement.lescrous.fr/mse/discovery/connect"
+        logger.info(f"Going to the login page via: {discovery_url}")
+        driver.get(discovery_url)
         sleep(self.delay)
 
         # Step 2: choose the correct authentication method
