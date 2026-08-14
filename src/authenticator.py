@@ -107,21 +107,32 @@ class Authenticator:
     def _find_mse_login_button(self, driver: WebDriver):
         """Finds the 'MesServices' login button (NOT the FranceConnect one),
         trying several strategies in case the site's markup changed.
+
+        Scoped to #content (the main page area) to avoid accidentally matching
+        the site's header/logo link, which also contains the word "MesServices"
+        but just links back to the homepage.
         """
+        translate_lower = "translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZÀÉ', 'abcdefghijklmnopqrstuvwxyzàé')"
         strategies = [
             (By.CLASS_NAME, "loginapp-button"),
+            (By.XPATH, "//*[@id='content']//*[contains(@class, 'loginapp')]"),
             (
                 By.XPATH,
-                "//button[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZÀÉ', 'abcdefghijklmnopqrstuvwxyzàé'), 'messervices')]",
+                f"//*[@id='content']//button[contains({translate_lower}, 'messervices')]",
             ),
             (
                 By.XPATH,
-                "//a[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZÀÉ', 'abcdefghijklmnopqrstuvwxyzàé'), 'messervices')]",
+                f"//*[@id='content']//a[contains({translate_lower}, 'messervices')]",
             ),
-            (By.XPATH, "//*[contains(@class, 'loginapp')]"),
+            # Fallback: find the "Identification avec MesServices" text, then the
+            # nearest clickable element (link or button) that follows it.
             (
                 By.XPATH,
-                "//*[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZÀÉ', 'abcdefghijklmnopqrstuvwxyzàé'), 'identification avec messervices')]",
+                f"//*[contains({translate_lower}, 'identification avec messervices')]/following::a[1]",
+            ),
+            (
+                By.XPATH,
+                f"//*[contains({translate_lower}, 'identification avec messervices')]/following::button[1]",
             ),
         ]
         return self._find_element(driver, strategies, "MesServices login button")
